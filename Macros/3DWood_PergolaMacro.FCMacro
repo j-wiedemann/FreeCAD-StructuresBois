@@ -1,0 +1,164 @@
+# Macro Begin: /home/jo/FreeCAD/Scripts/3DWood_PergolaMacro.FCMacro +++++++++++++++++++++++++++++++++++++++++++++++++
+import FreeCAD
+import Arch
+import Part
+import math
+
+# DONNEES
+## PERGOLA
+pergolaHauteur = 2.5
+pergolaLargeur = 3.7
+pergolaLongueur = 7.4
+print("Pergola de " + str(pergolaLargeur)+" m de large, " + str(pergolaLongueur) + " m de long et " + str(pergolaHauteur) + " m de haut.")
+## PIECE
+poteauSection = [0.2,0.2,pergolaHauteur]
+poutreSection = [0.09,0.21,pergolaLongueur]
+poutrePortee = 10.0
+soliveSection = [0.1,0.1,pergolaLargeur]
+solivesEntreAxe = 0.5
+solivePortee = 5.0
+"""
+## PERGOLA test en metre
+pergolaHauteur = 2500.0
+pergolaLargeur = 4200.0
+pergolaLongueur = 7650.0
+print("Pergola de "+str(pergolaLargeur)+" mm de large, "+str(pergolaLongueur)+" mm de long et "+str(pergolaHauteur)+ " mm de haut.")
+## PIECE
+poteauSection = [100.0,100.0,pergolaHauteur]
+poutreSection = [100.0,100.0,pergolaLongueur]
+poutrePortee = 4500.0
+soliveSection = [100.0,100.0,pergolaLargeur]
+solivesEntreAxe = 800.0
+solivePortee = 3000.0
+"""
+# CALCULS
+## SOLIVES
+solivesQte = int(math.ceil((pergolaLongueur) / solivesEntreAxe )) + 1
+if solivesQte == 2 :
+	solivesEntreAxeReel = solivesEntreAxe - soliveSection[0]
+else :
+	solivesEntreAxeReel = (pergolaLongueur- soliveSection[0])  / (solivesQte - 1.0 )
+solivesEntreAxeListe = [soliveSection[0]/2]
+for i in range(solivesQte - 1) :
+	solivesEntreAxeListe.append(float(solivesEntreAxeReel))
+print("Qte solives = " + str(solivesQte))
+print("EA solives = " + str(solivesEntreAxeReel) + " m")
+
+
+##POUTRES
+poutresQte = int(math.ceil(pergolaLargeur / solivePortee)) + 1
+if poutresQte == 2 :
+	poutresEntreAxeReel = pergolaLargeur - 2*poteauSection[0] + poutreSection[0]
+else :
+	poutresEntreAxeReel = (pergolaLargeur - 2*poteauSection[0] + poutreSection[0]) / (poutresQte - 1.0 )
+poutresEntreAxeListe = [poteauSection[0]-poutreSection[0]/2]
+for i in range(poutresQte - 1) :
+	poutresEntreAxeListe.append(float(poutresEntreAxeReel))
+print("Qte poutres =" + str(poutresQte))
+print("EntreAxe poutres =" + str(poutresEntreAxeReel) + " m")
+
+##POTEAUX
+poteauxLongQte = int(math.ceil(pergolaLongueur / poutrePortee)) + 1
+if poteauxLongQte == 2 :
+	poteauxLongEntreAxeReel = min(poutrePortee,pergolaLongueur) - poteauSection[1]
+else :
+	poteauxLongEntreAxeReel = (pergolaLongueur - poteauSection[1]) / (poteauxLongQte - 1.0)
+
+poteauxLongListeEntreAxe = [poteauSection[1]/2]
+for i in range(poteauxLongQte - 1) :
+	poteauxLongListeEntreAxe.append(float(poteauxLongEntreAxeReel))
+
+poteauxLargQte = poutresQte
+#poteauxLargEntreAxeReel = poutresEntreAxeReel
+if poteauxLargQte == 2 :
+	poteauxLargEntreAxeReel = min(pergolaLargeur, solivePortee) - poteauSection[1]
+else :
+	poteauxLargEntreAxeReel = (pergolaLargeur - poteauSection[1]) / (poteauxLargQte - 1.0)
+poteauxLargListeEntreAxe = [poteauSection[0]/2]
+for i in range(poteauxLargQte - 1) :
+	poteauxLargListeEntreAxe.append(float(poteauxLargEntreAxeReel))
+
+print("Qte poteauxLong =" + str(poteauxLongQte))
+print("EA poteauxLong =" + str(poteauxLongEntreAxeReel) + " m")
+print("Qte poteauxLarg =" + str(poteauxLargQte))
+print("EA poteauxLarg =" + str(poteauxLargEntreAxeReel) + " m")
+
+App.newDocument()
+
+#POTEAUX
+##AXES 
+poteauxLongAxes = Arch.makeAxis(num = poteauxLongQte ,size=poteauxLongEntreAxeReel)
+poteauxLongAxes.Length = pergolaLargeur + 2
+poteauxLongAxes.Distances = poteauxLongListeEntreAxe
+poteauxLongAxes.Placement = App.Placement(App.Vector(0 ,-1 ,0),App.Rotation(0,0,0,0))
+
+poteauxLargAxes = Arch.makeAxis(num = poteauxLargQte,size=poteauxLargEntreAxeReel)
+poteauxLargAxes.Length = pergolaLongueur + 2
+poteauxLargAxes.Distances = poteauxLargListeEntreAxe
+poteauxLargAxes.Placement = App.Placement(App.Vector(pergolaLongueur + 1 ,0,0),App.Rotation(0,0,0.707107,0.707107))
+
+##STRUCTURE
+poteau = Arch.makeStructure(length=poteauSection[0],width=poteauSection[1],height=poteauSection[2])
+poteau.Placement.Base = FreeCAD.Vector(0.0,0.0,0.0)
+poteau.Axes = (poteauxLongAxes,poteauxLargAxes)
+
+#POUTRES
+##AXES
+poutresAxes = Arch.makeAxis(num=poutresQte,size=poutresEntreAxeReel)
+poutresAxes.Length = 1.00
+poutresAxes.Distances = poutresEntreAxeListe
+poutresAxes.Placement = App.Placement(App.Vector(0,0,pergolaHauteur-poutreSection[1]+0.05),App.Rotation(0,0,0.707107,0.707107))
+
+##STRUCTURE
+poutre = Arch.makeStructure(length=poutreSection[0],width=poutreSection[2],height=poutreSection[1])
+poutre.Placement.Base = FreeCAD.Vector(poutreSection[2]/2.0,0.0,0.0)
+poutre.Axes = (poutresAxes)
+
+#SOLIVES
+##AXES
+solivesAxes = Arch.makeAxis(num=solivesQte, size=solivesEntreAxeReel)
+solivesAxes.Length = 1.00
+solivesAxes.Distances= solivesEntreAxeListe
+solivesAxes.Placement = App.Placement(App.Vector(0,pergolaLargeur,pergolaHauteur+soliveSection[1]/4),App.Rotation(0,0,0,0))
+
+##STRUCTURE
+solive = Arch.makeStructure(length=soliveSection[1],width=soliveSection[2],height=soliveSection[0])
+solive.Placement.Base = FreeCAD.Vector(0.0,-soliveSection[2]/2.0,0.0)
+solive.Axes = (solivesAxes)
+
+##CONTREFICHE
+
+App.activeDocument().addObject('Sketcher::SketchObject','contreficheSketch001')
+
+App.activeDocument().contreficheSketch001.Placement = App.Placement(App.Vector(0.000000,0.000000,0.000000),App.Rotation(-0.707107,0.000000,0.000000,-0.707107))
+
+App.activeDocument().contreficheSketch001.addGeometry(Part.Line(App.Vector(1.0,1.0,0),App.Vector(2.0,2.0,0)))
+App.activeDocument().contreficheSketch001.addGeometry(Part.Line(App.Vector(2,2,0),App.Vector(1.7,2.0,0)))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Coincident',0,2,1,1))
+App.activeDocument().contreficheSketch001.addGeometry(Part.Line(App.Vector(1.7,2,0),App.Vector(1,1.3,0)))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Coincident',1,2,2,1))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Horizontal',1))
+App.activeDocument().contreficheSketch001.addGeometry(Part.Line(App.Vector(1,1.3,0),App.Vector(1.0,1.0,0)))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Coincident',2,2,3,1)) 
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Coincident',3,2,0,1))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Vertical',3))
+App.activeDocument().contreficheSketch001.addGeometry(Part.Line(App.Vector(1,1.3,0),App.Vector(1.1,1.1,0)))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Coincident',4,1,2,2))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('PointOnObject',4,2,0)) 
+App.activeDocument().contreficheSketch001.toggleConstruction(4)
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Perpendicular',4,0)) 
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Perpendicular',4,2))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Distance',4,0.15))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Angle',0,1,3,2,0.785398))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('Distance',0,1.2))
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('DistanceX',0,1,0.1)) 
+App.activeDocument().contreficheSketch001.addConstraint(Sketcher.Constraint('DistanceY',0,1,2.0))
+contrefiche = Arch.makeStructure(FreeCAD.ActiveDocument.contreficheSketch001)
+contrefiche.Height = 0.08
+
+# SYSTEME ET VUES
+App.activeDocument().recompute()
+Gui.SendMsgToActiveView("ViewFit")
+Gui.activeDocument().activeView().viewAxometric()
+
+# Macro End: /home/jo/FreeCAD/Scripts/3DWood_PergolaMacro.FCMacro +++++++++++++++++++++++++++++++++++++++++++++++++
